@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
 
 # Load API Key securely from environment variables
@@ -79,3 +80,6 @@ def get_recipe(
     
     except Exception as e:
         return {"error": f"OpenAI API Error: {str(e)}"}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=5291)
