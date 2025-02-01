@@ -2,6 +2,8 @@ from fastapi import FastAPI, Query
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
+from fastapi.middleware.cors import CORSMiddleware
+
 
 # Load API Key securely from environment variables
 load_dotenv()
@@ -17,10 +19,54 @@ else:
 client = OpenAI()
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (change for security in production)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/get_recipe")
-def get_recipe(ingredients: str, time_limit: int, style: str = "healthy"):
-    prompt = f"Give me a {style} recipe using {ingredients} that can be cooked in {time_limit} minutes."
+def get_recipe(
+    ingredients: str,
+    time_limit: int = 30, 
+    preferences: str = "healthy",
+    cuisines: str = "any"
+):
+    """
+    Generates 3 recipe options based on user input.
+    
+    - `ingredients`: Comma-separated list of available ingredients.
+    - `time_limit`: Maximum cooking time in minutes.
+    - `preferences`: Cooking preferences, separated by semicolons.
+    - `cuisines`: Preferred cuisine styles, separated by semicolons.
+    """
+
+    prompt = f"""
+    You are a helpful AI chef. Generate 3 different recipe ideas based on the following:
+    
+    Ingredients available: {ingredients}
+    Cooking time limit: {time_limit} minutes
+    Cooking preferences: {preferences} 
+    Preferred cuisines: {cuisines}
+
+    Return the output in **valid JSON format** as a list of 3 objects. 
+    For each recipe, include:
+    - Name of the dish
+    - List of ingredients used
+    - Step-by-step cooking instructions
+    - Approximate preparation time
+
+    Keep responses clear and concise.
+    Example JSON output format:
+    [
+        {{"name": "Stir-fried Chicken", "ingredients": ["chicken", "soy sauce", "garlic"], 
+          "instructions": ["Step 1...", "Step 2..."], "prep_time": 20}},
+        {{"name": "Vegetable Pasta", "ingredients": ["pasta", "tomato", "basil"], 
+          "instructions": ["Step 1...", "Step 2..."], "prep_time": 25}}
+    ]
+    """
 
     try:
         response = client.chat.completions.create(
