@@ -41,14 +41,13 @@ async def get_recipe(request_data: dict):
         seasonings = request_data.get("seasonings", [])
         time_limit = request_data.get("time_limit", 40)
 
-        # Convert selectedTags (boolean object) into a list of ingredients
-        ingredients = [key for key, value in selected_tags.items() if value]
+        # Convert `selectedTags` dictionary into a list of ingredient names
+        ingredients = list(selected_tags.keys())
 
         # Debugging: Log extracted data
-        print("🔹 Received Data:", request_data)
-        print("🔹 Processed Ingredients:", ingredients)
+        print("🔹 Extracted Ingredients:", ingredients)
 
-        # Ensure ingredients are not empty
+        # Ensure we actually have ingredients before proceeding
         if not ingredients:
             raise HTTPException(status_code=400, detail="No valid ingredients provided.")
 
@@ -67,6 +66,7 @@ async def get_recipe(request_data: dict):
         - 'ingredients' (list of ingredients)
         - 'instructions' (list of steps to prepare the dish)
         """
+
     #try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
