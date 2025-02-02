@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import json
 
 
 # Load API Key securely from environment variables
@@ -35,38 +36,22 @@ def get_recipe(
     preferences: str = "healthy",
     cuisines: str = "any"
 ):
-    """
-    Generates 3 recipe options based on user input.
-    
-    - `ingredients`: Comma-separated list of available ingredients.
-    - `time_limit`: Maximum cooking time in minutes.
-    - `preferences`: Cooking preferences, separated by semicolons.
-    - `cuisines`: Preferred cuisine styles, separated by semicolons.
-    """
-
     prompt = f"""
-    You are a helpful AI chef. Generate 3 different recipe ideas based on the following:
+    You are a helpful AI chef. Generate 3 different recipe ideas **in valid JSON format**.
     
+    **DO NOT** include markdown formatting (```json).
+    **DO NOT** add extra text outside the JSON.
+
     Ingredients available: {ingredients}
     Cooking time limit: {time_limit} minutes
     Cooking preferences: {preferences} 
     Preferred cuisines: {cuisines}
 
-    Return the output in **valid JSON format** as a list of 3 objects. 
-    For each recipe, include:
-    - Name of the dish
-    - List of ingredients used
-    - Step-by-step cooking instructions
-    - Approximate preparation time
-
-    Keep responses clear and concise.
-    Example JSON output format:
-    [
-        {{"name": "Stir-fried Chicken", "ingredients": ["chicken", "soy sauce", "garlic"], 
-          "instructions": ["Step 1...", "Step 2..."], "prep_time": 20}},
-        {{"name": "Vegetable Pasta", "ingredients": ["pasta", "tomato", "basil"], 
-          "instructions": ["Step 1...", "Step 2..."], "prep_time": 25}}
-    ]
+    Return a JSON list of 3 objects, each containing:
+    - "name" (string)
+    - "ingredients" (list of strings)
+    - "instructions" (list of strings)
+    - "prep_time" (integer)
     """
 
     try:
@@ -75,9 +60,17 @@ def get_recipe(
             messages=[{"role": "system", "content": prompt}]
         )
 
-        recipe = response.choices[0].message.content
-        return {"recipe": recipe}
-    
+        recipe_content = response.choices[0].message.content
+
+        # **CLEAN RESPONSE**: Remove Markdown formatting if present
+        cleaned_json = recipe_content.strip().replace("```json", "").replace("```", "").strip()
+
+        # **VALIDATE JSON**: Ensure correct format
+        recipes = json.loads(cleaned_json)
+
+        return {"recipes": recipes}  # Wrap in a key
+    except json.JSONDecodeError:
+        return {"error": "Invalid JSON format received from OpenAI"}
     except Exception as e:
         return {"error": f"OpenAI API Error: {str(e)}"}
 
