@@ -33,38 +33,46 @@ app.add_middleware(
 async def get_recipe(request_data: dict):
     try:
         # Extract data from JSON request
-        fridge_items = request_data.get("fridgeItems", [])
         selected_tags = request_data.get("selectedTags", {})
-        cooking_equipment = request_data.get("cooking_equipment", [])
-        cuisines = request_data.get("cuisines", [])
-        preferences = request_data.get("preferences", [])
-        seasonings = request_data.get("seasonings", [])
-        time_limit = request_data.get("time_limit", 40)
+        
+        # ✅ Convert selectedTags (dict) into a list of only the `true` values
+        ingredients = [key for key, value in selected_tags.items() if value]
 
-        # Convert `selectedTags` dictionary into a list of ingredient names
-        ingredients = list(selected_tags.keys())
+        print("🔹 Extracted Ingredients:", ingredients)  # ✅ Debugging
 
-        # Debugging: Log extracted data
-        print("🔹 Extracted Ingredients:", ingredients)
-
-        # Ensure we actually have ingredients before proceeding
         if not ingredients:
             raise HTTPException(status_code=400, detail="No valid ingredients provided.")
 
-        # Generate a prompt for OpenAI API
+        # ✅ Updated Prompt to Force JSON Output
         prompt = f"""
-        You are a helpful AI chef. Generate 3 different recipes based on the following details:
-        - Ingredients: {', '.join(ingredients)}
-        - Time limit: {time_limit} minutes
-        - Preferences: {', '.join(preferences) if preferences else 'None'}
-        - Cuisines: {', '.join(cuisines) if cuisines else 'Any'}
-        - Available cooking equipment: {', '.join(cooking_equipment) if cooking_equipment else 'Any'}
-        - Available seasonings: {', '.join(seasonings) if seasonings else 'Basic'}
+        You are an AI chef. Generate exactly 3 different recipes using **only JSON format**.
+        Each recipe should include:
+        - 'name': Recipe name
+        - 'ingredients': List of ingredients
+        - 'instructions': List of steps to prepare the dish
 
-        Provide recipes in JSON format with:
-        - 'name' (recipe title)
-        - 'ingredients' (list of ingredients)
-        - 'instructions' (list of steps to prepare the dish)
+        **Here are the details:**
+        - Ingredients: {', '.join(ingredients)}
+        - Time limit: {request_data.get("time_limit", 40)} minutes
+        - Preferences: {', '.join(request_data.get("preferences", [])) if request_data.get("preferences") else 'None'}
+        - Cuisines: {', '.join(request_data.get("cuisines", [])) if request_data.get("cuisines") else 'Any'}
+        - Available cooking equipment: {', '.join(request_data.get("cooking_equipment", [])) if request_data.get("cooking_equipment") else 'Any'}
+        - Available seasonings: {', '.join(request_data.get("seasonings", [])) if request_data.get("seasonings") else 'Basic'}
+
+        **Return JSON only. Do not include explanations or extra text.**
+        Example:
+        [
+          {{
+            "name": "Grilled Cheese Sandwich",
+            "ingredients": ["Cheese", "Bread", "Butter"],
+            "instructions": ["Spread butter on bread", "Add cheese", "Grill until golden brown"]
+          }},
+          {{
+            "name": "Tomato Soup",
+            "ingredients": ["Tomatoes", "Salt", "Pepper"],
+            "instructions": ["Blend tomatoes", "Add salt and pepper", "Simmer for 10 minutes"]
+          }}
+        ]
         """
 
     #try:
