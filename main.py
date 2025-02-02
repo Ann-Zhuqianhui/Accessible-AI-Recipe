@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
